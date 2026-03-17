@@ -1,0 +1,45 @@
+services:
+  jdownloader2:
+    image: jlesage/jdownloader-2
+    container_name: jdownloader2
+    restart: unless-stopped
+    profiles: ["downloads", "all", "jdownloader2"]
+    ports:
+      - 3129:3129  
+      #- 5800:5800
+    networks:
+      - default
+      - t3_proxy
+    volumes:
+      - "$APPDATADIR/jdownloader2:/config:rw"
+      - "$DOWNLOADSDIR:/output:rw"
+    environment:
+      TZ: $TZ
+        #USER_ID: $PUID
+        #GROUP_ID: $PGID
+      UMASK: 002
+      KEEP_APP_RUNNING: 1
+      DARK_MODE: 1
+      JDOWNLOADER_HEADLESS: 0
+      WEB_FILE_MANAGER: 1
+      SECURE_CONNECTION: 0 
+      WEB_AUTHENTICATION: 0
+      WEB_AUTHENTICATION_USERNAME: elise
+      WEB_AUTHENTICATION_PASSWORD: test
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.jdownloader2-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.jdownloader2-rtr.rule=Host(`downloads.$DOMAINNAME_1`)"
+      - "traefik.http.routers.jdownloader2.tls=true"
+      - "traefik.http.routers.jdownloader2.tls.certresolver=dns-porkbun"
+      # Middlewares
+      - "traefik.http.routers.jdownloader2-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.jdownloader2-rtr.service=jdownloader2-svc"
+      - "traefik.http.services.jdownloader2-svc.loadbalancer.server.port=5800"
+      # Homepage
+      - "homepage.group=Downloads"
+      - "homepage.name=JDownloader2"      
+      - "homepage.href=http://downloads.$DOMAINNAME_1/"
+      - "homepage.description=JDownloader 2 is a free, open-source download manager that simplifies and speeds up file downloads from the internet. It supports downloading multiple files from one-click hosting sites, extracting archives automatically, and even downloading entire YouTube playlists or channels. Key features include resuming downloads, setting bandwidth limitations, and automated CAPTCHA recognition."

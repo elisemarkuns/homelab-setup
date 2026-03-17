@@ -1,0 +1,42 @@
+############################## NETWORKS
+networks:
+  default:
+    driver: bridge
+  socket_proxy:
+    external: true
+  t3_proxy:
+    external: true
+
+############################## SECRETS
+secrets:
+  basic_auth_credentials:
+    file: $DOCKERDIR/secrets/basic_auth_credentials
+  pb_secret_api_key:
+    file: $DOCKERDIR/secrets/pb_secret_api_key
+  pb_api_key:
+    file: $DOCKERDIR/secrets/pb_api_key
+  mariadb_root_password:
+    file: $DOCKERDIR/secrets/mariadb_root_password
+
+include:
+  ########## SERVICES ########## 
+
+  # DOWNLOADS
+  - compose/gluetun.yml
+  - compose/qbittorrent.yml
+
+  # MEDIA
+  #  - compose/filebrowser.yml
+  - compose/jellyfin.yml
+  #- compose/sabnzbd.yml
+  - compose/tdarr-server.yml
+  #- compose/tdarr-node.yml
+  - compose/flaresolverr.yml
+  - compose/prowlarr.yml
+  - compose/radarr.yml
+  - compose/sonarr.yml
+  #- compose/bazarr.yml
+  - compose/lidarr.yml
+  #  - compose/picard.yml
+  #- compose/jdownloader2.yml
+  #- compose/aria2.yml

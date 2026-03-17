@@ -1,0 +1,35 @@
+services:
+  # File Browser - Explorer
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - default
+      - t3_proxy
+#    ports:
+#      - "$FILEBROWSER_PORT:80"
+    volumes:
+      - $APPDATADIR/filebrowser:/config
+      - $USERDIR:/data/home
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.filebrowser-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.filebrowser-rtr.rule=Host(`files.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.filebrowser-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.filebrowser-svc.loadbalancer.server.port=80"
+      # Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=filebrowser"
+      - "homepage.href=http://files.xeiyra.com/"
+      - "homepage.description=Media server"

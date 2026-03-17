@@ -1,0 +1,29 @@
+services:
+# FlareSolverr - Proxy server to bypass Cloudflare protection
+  # Not sure if I need this or not. Just testing.
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "starr", "all"]
+    networks:
+      - default
+      - t3_proxy
+    environment:
+      LOG_LEVEL: info
+      LOG_HTML: false
+      CAPTCHA_SOLVER: none
+      TZ: $TZ
+    ports:
+      - "8191:8191"
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.flaresolverr-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.flaresolverr-rtr.rule=Host(`flaresolverr.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.flaresolverr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.flaresolverr-svc.loadbalancer.server.port=8191"

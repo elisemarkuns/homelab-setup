@@ -1,0 +1,31 @@
+services:
+  # Uptime Kuma - Status Page & Monitoring Server
+  uptime-kuma:
+    image: louislam/uptime-kuma
+    container_name: uptime-kuma
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    profiles: ["core", "all"]
+    networks:
+      - default
+      - socket_proxy
+      - t3_proxy
+#    ports:
+#      - "$UPTIMEKUMA_PORT:3001"
+    volumes:
+      - $APPDATADIR/uptime-kuma:/app/data
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.uptimekuma-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.uptimekuma-rtr.rule=Host(`kuma.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.uptimekuma-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.uptimekuma-svc.loadbalancer.server.port=3001"
+      # Homepage
+      - "homepage.group=Core"
+      - "homepage.name=Uptime-Kuma"
+      - "homepage.href=http://kuma.$DOMAINNAME_1/"
+      - "homepage.description=Uptime Kuma is an easy-to-use self-hosted monitoring tool"

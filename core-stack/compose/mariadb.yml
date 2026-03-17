@@ -1,0 +1,41 @@
+services:
+  mariadb:
+    container_name: mariadb
+    image: mariadb:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    profiles: ["core", "all"]
+    networks:
+      - default
+      - t3_proxy
+  # ports:
+    # - "$MARIADB_PORT:3306"
+    volumes:
+      - $APPDATADIR/mariadb/data:/var/lib/mysql
+      - $APPDATADIR/mariadb/config:/etc/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/mariadb_root_password
+    secrets:
+      - mariadb_root_password
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      start_period: 1m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.mariadb-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.mariadb-rtr.rule=Host(`mariadb.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.mariadb-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.mariadb-svc.loadbalancer.server.port=3306"
+        ## Homepage
+        #- "homepage.group=Core"
+        #- "homepage.name=MariaDB"
+        #- "homepage.href=http://mariadb.$DOMAINNAME_1/"
+        #- "homepage.description=MariaDB Server is a general purpose open source relational database management system. It's one of the most popular database servers in the world."

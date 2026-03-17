@@ -1,0 +1,38 @@
+services:
+  # qBittorrent - Torrent downloader
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    security_opt:
+      - no-new-privileges:true
+    profiles: ["apps", "downloads", "all"]
+    network_mode: "container:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+# # ports:
+  # # - "$QBITTORRENT_PORT:8080"
+    volumes:
+      - $APPDATADIR/qbittorrent:/config
+      - $DOWNLOADSDIR:/data/downloads # Ensure that downloads folder is set to /data/downloads in qBittorrent
+      - $DOWNLOADSDIR_NOTARR:/data/media_shared-downloads
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      UMASK_SET: 002
+        #    healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
+        #      test: "curl -sf https://example.com  || exit 1"
+        #      interval: 1m
+        #      timeout: 10s
+        #      retries: 1
+        #    labels: # Traefik labels added via glueten
+        #      - "deunhealth.restart.on.unhealthy=false"
+
+    labels:
+      # Homepage
+      - "homepage.group=Downloads"
+      - "homepage.name=qBittorrent"
+      - "homepage.href=http://qbit.$DOMAINNAME_1/"
+      - "homepage.description=Qbit is very simple, lightweight & safe to use torrent client."

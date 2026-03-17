@@ -1,0 +1,40 @@
+services:
+  # Radarr - Movies Management
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "starr", "all"]
+    networks:
+      - default
+      - t3_proxy
+    #ports:
+      #      - "$RADARR_PORT:7878"
+    volumes:
+      - $APPDATADIR/radarr:/config
+      - $MEDIADIR1:/data/media1
+      # - $MEDIADIR2:/data/media2
+      # - $MEDIADIR3:/data/media3
+      - $DOWNLOADSDIR:/data/downloads 
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.radarr-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.radarr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.radarr-svc.loadbalancer.server.port=7878"
+      # Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=Radarr"
+      - "homepage.href=http://radarr.$DOMAINNAME_1/"
+      - "homepage.description=Radarr is a movie collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new movies and will interface with clients and indexers to grab, sort, and rename them."

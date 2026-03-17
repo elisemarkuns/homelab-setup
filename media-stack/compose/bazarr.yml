@@ -1,0 +1,37 @@
+services:
+  # Bazarr - Subtitle Management
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "starr", "all"]
+    networks:
+      - default
+      - t3_proxy
+    #    ports:
+      #      - "$BAZARR_PORT:6767"
+    volumes:
+      - $APPDATADIR/bazarr:/config
+      - $MEDIADIR1:/data/media1
+      # - $MEDIADIR2:/data/media2
+      # - $MEDIADIR3:/data/media3
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.bazarr-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.bazarr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"
+      # Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=Bazarr"
+      - "homepage.href=http://bazarr.$DOMAINNAME_1/"
+      - "homepage.description=Bazarr is a companion application to Sonarr and Radarr that manages and downloads subtitles based on your requirements."

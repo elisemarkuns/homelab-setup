@@ -1,0 +1,58 @@
+services:
+
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:14
+    container_name: wg-easy
+    hostname: wireguard-easy
+    restart: always    
+    profiles: ["core", "all", "vpn", "wg-easy"]
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+        #env_file:
+        #- .env
+    environment:
+      - WG_HOST=$DOMAINNAME_1 # your hostname or ip address
+      - PASSWORD_HASH=$WG_EASY_PASSWORD_HASH
+      - WG_DEFAULT_DNS=192.168.1.1,1.1.1.1,8.8.8.8 # add your local dns like pihole
+        #- WG_ALLOWED_IPS=0.0.0.0/0, ::/0
+      - WG_ALLOWED_IPS=$WG_EASY_ALLOWED_IPS
+      - WG_DEVICE=eth0
+      - WG_PORT=51820
+      - WG_PERSISTENT_KEEPALIVE=25
+      - UI_TRAFFIC_STATS=true
+    ports:
+      - 51820:51820/udp # wireguard vpn
+      - 51821:51821/tcp # admin web ui
+    expose:
+      - 51820/udp # wireguard vpn
+      - 51821/tcp # admin web ui
+    volumes:
+      - $APPDATADIR/wg-easy:/etc/wireguard
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    networks:
+      #      wireguard:
+      #        interface_name: wireguard
+      #        driver_opts:
+      #          com.docker.network.endpoint.ifname: wireguard
+      t3_proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=t3_proxy    
+      - traefik.http.routers.wireguard.rule=Host(`vpn.$DOMAINNAME_1`)
+      - traefik.http.services.wireguard.loadbalancer.server.port=51821
+      # Part for local lan services only
+      - traefik.http.routers.wireguard.middlewares=chain-no-auth@file
+
+        #networks:
+        #  #  wireguard:
+        #  t3_proxy:
+        #    external: true
+
+      # Homepage
+      - "homepage.group=Secure Networking"
+      - "homepage.name=WG-Easy"
+      - "homepage.href=http://vpn.$DOMAINNAME_1/"
+      - "homepage.description=All-in-one: WireGuard + Web UI"

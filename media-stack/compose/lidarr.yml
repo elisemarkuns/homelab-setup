@@ -1,0 +1,38 @@
+services:
+  # Lidarr - Music Management
+  # Set url_base in lidarr settings if using PathPrefix
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media","arrs", "all"]
+    networks:
+      - default
+      - t3_proxy
+#    ports:
+#      - "8686:8686"
+    volumes:
+      - $APPDATADIR/lidarr:/config
+      - $MEDIADIR1:/data/media1
+      - $DOWNLOADSDIR:/data/downloads
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.lidarr-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.lidarr-rtr.rule=Host(`lidarr.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.lidarr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.lidarr-svc.loadbalancer.server.port=8686" 
+      #Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=Lidarr"
+      - "homepage.href=http://lidarr.$DOMAINNAME_1/"
+      - "homepage.description=Lidarr is a music collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new tracks from your favorite artists."  

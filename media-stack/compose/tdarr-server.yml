@@ -1,0 +1,46 @@
+services:
+  # Tdarr - Video File Transcoder
+  tdarr:
+    image: ghcr.io/haveagitgat/tdarr:latest
+    container_name: tdarr
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "starr", "all"]
+    networks:
+      - t3_proxy
+    devices:
+      - /dev/dri:/dev/dri
+    ports:
+#      - 8265:8265 # webUI port
+      - 8266:8266 # server port
+    volumes:
+      - $APPDATADIR/tdarr/configs:/app/configs
+      - $APPDATADIR/server:/app/server
+      - $DOCKERDIR/logs/tdarr:/app/logs
+      - $MEDIADIR1:/media
+      - $DOWNLOADSDIR/transcode/tdarr:/temp
+    environment:
+      - TZ=$TZ
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK_SET=002
+      - serverIP=192.168.1.12
+      - serverPort=8266
+      - webUIPort=8265
+      - internalNode=true
+      - maxLogSizeMB=10
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.tdarr-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.tdarr-rtr.rule=Host(`tdarr.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.tdarr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.tdarr-svc.loadbalancer.server.port=8265"
+      # Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=Tdarr"
+      - "homepage.href=http://tdarr.$DOMAINNAME_1/"
+      - "homepage.description=Tdarr is a conditional based transcoding application for automating media library transcode/remux management."

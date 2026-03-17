@@ -1,0 +1,37 @@
+services:
+  # Portainer - WebUI for Containers
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest 
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    profiles: ["core", "all"]
+    networks:
+      - default
+      - socket_proxy
+      - t3_proxy
+    # command: -H unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+    command: -H tcp://socket-proxy:2375
+    ports:
+      - "$PORTAINER_PORT:9000"
+    volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # Use Docker Socket Proxy instead for improved security
+      - $APPDATADIR/portainer/data:/data 
+    environment:
+      - TZ=$TZ
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.portainer-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.portainer-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.portainer-rtr.service=portainer-svc"
+      - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
+      # Homepage
+      - "homepage.group=Core"
+      - "homepage.name=Portainer"
+      - "homepage.href=http://portainer.$DOMAINNAME_1/"
+      - "homepage.description=A simple management UI for Docker"

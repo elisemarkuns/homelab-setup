@@ -1,0 +1,46 @@
+############################## NETWORKS
+networks:
+  default: 
+    driver: bridge
+  socket_proxy:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+    #external: true
+  t3_proxy:
+    name: t3_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.90.0/24
+    external: true 
+
+############################## SECRETS
+secrets:
+  basic_auth_credentials:
+    file: $DOCKERDIR/secrets/basic_auth_credentials
+  pb_secret_api_key:
+    file: $DOCKERDIR/secrets/pb_secret_api_key
+  pb_api_key:
+    file: $DOCKERDIR/secrets/pb_api_key
+  mariadb_root_password:
+    file: $DOCKERDIR/secrets/mariadb_root_password
+
+include:
+  ######### SERVICES ##########
+  - compose/socket-proxy.yml  # Socket Proxy to allow containers to communicate with docker socket securely
+  - compose/deunhealth.yml    # Deunhealth :shrug:
+  - compose/ddns-updater.yml  # Dynamic DNS updater for xeiyra.com
+  - compose/traefik.yml       # Traefik reverse proxy
+  - compose/uptimekuma.yml    # Monitoring service uptime
+  - compose/wg-easy.yml       # Wireguard VPN 
+  - compose/homepage.yml      # Homepage to access services from one place
+  #- compose/dozzle.yml        # Easy access to service logs
+  - compose/dockergc.yml      # Docker garbage collection
+  - compose/portainer.yml     # WebGUI for Docker container management
+  #- compose/mariadb.yml       # General purpose database management system
+  #- compose/oauth.yml         # 
+  #- compose/technitium.yml    # DNS server
+  #- compose/watchtower.yml    # Automatic Docker service updates
+

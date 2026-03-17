@@ -1,0 +1,46 @@
+services:
+  # SABnzbd - Binary newsgrabber (NZB downloader)
+  # Disable SABnzbd's built-in HTTPS support for traefik proxy to work
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "downloads", "all"]
+#    network_mode: "container:gluetun"
+    networks:
+      - default
+      - t3_proxy
+#    ports:
+#      - "$SABNZBD_PORT:8082"
+    volumes:
+      - $APPDATADIR/sabnzbd:/config
+      - $DOWNLOADSDIR:/data/downloads
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      UMASK_SET: 002
+        #    healthcheck: # https://github.com/qdm12/gluetun/issues/641#issuecomment-933856220
+        #      test: "curl -sf https://example.com  || exit 1"
+        #      interval: 1m
+        #      timeout: 10s
+        #      retries: 1
+        #    labels: # Traefik labels added via glueten
+        #      - "deunhealth.restart.on.unhealthy=false"
+        
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.sabnzbd-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.sabnzbd-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8082"
+      # Homepage
+      - "homepage.group=Downloads"
+      - "homepage.name=SABnzbd"
+      - "homepage.href=http://sabnzbd.$DOMAINNAME_1/"
+      - "homepage.description=SABnzbd is a program to download binary files from Usenet servers."

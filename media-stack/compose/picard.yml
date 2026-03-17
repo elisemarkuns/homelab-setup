@@ -1,0 +1,38 @@
+services:
+  # Picard - Music Library Tagging and Management
+  picard:
+    image: mikenye/picard:latest
+    container_name: picard
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    profiles: ["media", "all"]
+    networks:
+      - t3_proxy
+    # ports:
+    #   - "$PICARD_PORT:5800"
+    volumes:
+      - $MEDIADIR1:/data:rw
+      - $APPDATADIR/picard:/config:rw
+      - /dev/shm:/dev/shm
+    environment:
+      USER_ID: $PUID
+      GROUP_ID: $PGID
+      TZ: $TZ
+      UMASK: 002
+      DISPLAY_WIDTH: 1600
+      DISPLAY_HEIGHT: 960
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.picard-rtr.entrypoints=websecure-internal"
+      - "traefik.http.routers.picard-rtr.rule=Host(`picard.$DOMAINNAME_1`)"
+      # Middlewares
+      - "traefik.http.routers.picard-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.services.picard-svc.loadbalancer.server.port=5800"
+      # Homepage
+      - "homepage.group=Media-Management"
+      - "homepage.name=picard"
+      - "homepage.href=http://picard.xeiyra.com/"
+      - "homepage.description=Media indexer"

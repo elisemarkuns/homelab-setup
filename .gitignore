@@ -1,0 +1,12 @@
+# ignore sensitive data files
+.env
+.env.local
+secrets/*
+
+# ignore logs
+*.log
+logs/
+
+# ignore OS/Docker generated files
+*.swp
+.data/

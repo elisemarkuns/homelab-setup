@@ -1,0 +1,54 @@
+services:  
+  ddns-updater:
+    image: qmcgaw/ddns-updater:latest
+    container_name: ddns-updater
+    profiles: ["core", "all"]
+    restart: always
+    user: $PUID:$PGID
+    volumes:
+      - $APPDATADIR/ddns-updater/data:/updater/data
+    ports:
+      - $DDNS_UPDATER_PORT:$DDNS_UPDATER_PORT/tcp
+    environment:
+      - TZ=$TZ
+      - CONFIG=
+      - PERIOD=5m
+      - UPDATE_COOLDOWN_PERIOD=5m
+      - PUBLICIP_FETCHERS=all
+      - PUBLICIP_HTTP_PROVIDERS=all
+      - PUBLICIPV4_HTTP_PROVIDERS=all
+      - PUBLICIPV6_HTTP_PROVIDERS=all
+      - PUBLICIP_DNS_PROVIDERS=all
+      - PUBLICIP_DNS_TIMEOUT=3s
+      - HTTP_TIMEOUT=10s
+      # Web UI
+      - LISTENING_ADDRESS=:$DDNS_UPDATER_PORT
+      - ROOT_URL=/
+      # Backup
+      - BACKUP_PERIOD=0 # 0 to disable
+      - BACKUP_DIRECTORY=/updater/data
+      # Other
+      - LOG_LEVEL=info
+      - LOG_CALLER=hidden
+      - SHOUTRRR_ADDRESSES=
+# NOTE: DDNS-Update MUST NOT connect to the Gluetun VPN container
+    networks:
+      - default
+      - t3_proxy
+    labels:
+      - traefik.enable=true
+      # ROUTERS
+      - traefik.http.routers.ddns-updater.service=ddns-updater
+      - traefik.http.routers.ddns-updater.rule=Host(`ddns-updater.$DOMAINNAME_1`)
+      - traefik.http.routers.ddns-updater.entrypoints=websecure-internal
+      #  - traefik.http.routers.ddns-updater.middlewares=authentik-forwardauth@file,security-headers@file,traefik-bouncer@file
+      # SERVICES
+      - traefik.http.services.ddns-updater.loadbalancer.server.scheme=http
+      - traefik.http.services.ddns-updater.loadbalancer.server.port=8010
+      # MIDDLEWARES
+    
+      # Homepage
+      - "homepage.group=Core"
+      - "homepage.name=DDNS-Updater"
+      - "homepage.href=https://ddns-updater.$DOMAINNAME_1/"
+      - "homepage.description="

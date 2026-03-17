@@ -1,0 +1,28 @@
+services:
+  porkbun-ddns:
+    image: "mietzen/porkbun-ddns:latest"
+    container_name: porkbun-ddns
+    restart: always
+    environment:
+      DOMAIN: "xeiyra.com" # Your Porkbun domain
+      #SUBDOMAINS: "" # Subdomains comma spreaded
+      SECRETAPIKEY_FILE: /run/secrets/pb_secret_api_key # Your Porkbun Secret-API-Key
+      APIKEY_FILE: /run/secrets/pb_api_key # Your Porkbun API-Key
+      # PUBLIC_IPS: "1.2.3.4,2001:043e::1" # Set if you got static IP's
+      # FRITZBOX: "192.168.178.1" # Use Fritz!BOX to obtain Public IP's
+      SLEEP: "300" # Seconds to sleep between DynDNS runs
+      IPV4: "TRUE" # Set IPv4 address
+      # IPV6: "TRUE" # Set IPv6 address
+      # DEBUG: "FALSE" # DEBUG LOGGING
+    secrets:                                                                        
+      - pb_secret_api_key
+      - pb_api_key
+
+
+# # Uncomment below to let it detect ipv6 address:
+#     networks:
+#       - ipv6_enabled
+
+# networks:
+#   ipv6_enabled:
+#     enable_ipv6: true

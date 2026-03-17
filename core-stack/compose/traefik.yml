@@ -1,0 +1,119 @@
+services:
+  # Traefik 3 - Reverse Proxy
+  traefik:
+    container_name: traefik
+    image: docker.io/traefik:latest
+      #image: docker.io/felixbuenemann/traefik:v3.6.1
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    profiles: ["core", "all"]
+    depends_on:
+      - socket-proxy
+    networks:
+      t3_proxy:
+        ipv4_address: 192.168.90.254 # You can specify a static IP
+      socket_proxy:
+    command: # CLI arguments
+      - --global.checkNewVersion=true
+      - --global.sendAnonymousUsage=false
+      - --providers.file.filename=/traefik-dynamic.yml
+      - --providers.file.watch=true
+      - --entrypoints.web-external.address=:81
+      - --entrypoints.web-internal.address=:80
+      - --entrypoints.websecure-external.address=:444
+      - --entrypoints.websecure-internal.address=:443
+      - --entrypoints.traefik.address=:8080
+      - --entrypoints.websecure-external.http3=true
+      - --entrypoints.websecure-internal.http3=true
+      - --entrypoints.web-external.http.redirections.entrypoint.to=websecure-external
+      - --entrypoints.web-external.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web-external.http.redirections.entrypoint.permanent=true
+      - --entrypoints.web-internal.http.redirections.entrypoint.to=websecure-internal
+      - --entrypoints.web-internal.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web-internal.http.redirections.entrypoint.permanent=true
+      - --api=true
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --entrypoints.websecure-internal.transport.respondingTimeouts.readTimeout=420
+      - --entrypoints.websecure-internal.transport.respondingTimeouts.idleTimeout=420
+      - --entrypoints.websecure-internal.transport.respondingTimeouts.writeTimeout=420
+      # - --serversTransport.insecureSkipVerify=true
+      # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.porkbun.com/ips/
+      - --entrypoints.websecure-external.forwardedHeaders.trustedIPs=$LOCAL_IPS
+      - --entrypoints.websecure-internal.forwardedHeaders.trustedIPs=$LOCAL_IPS
+      - --log=true
+      - --log.filePath=/logs/traefik.log
+      - --log.level=DEBUG # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --accessLog=true
+      - --accessLog.filePath=/logs/access.log
+      - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+      - --accessLog.filters.statusCodes=204-299,400-499,500-599
+      - --providers.docker=true
+      # - --providers.docker.endpoint=unix:///var/run/docker.sock # Disable for Socket Proxy. Enable otherwise.
+      - --providers.docker.endpoint=$DOCKER_HOST # Enable for Socket Proxy. Disable otherwise.
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=t3_proxy 
+      # - --providers.swarm.endpoint=tcp://127.0.0.1:2377 # Traefik v3 Swarm
+      - --entrypoints.websecure-external.http.tls=true
+      - --entrypoints.websecure-external.http.tls.options=tls-opts@file
+      - --entrypoints.websecure-internal.http.tls=true
+      - --entrypoints.websecure-internal.http.tls.options=tls-opts@file
+      # Add dns-porkbun as default certresolver for all services. Also enables TLS and no need to specify on individual services
+      - --entrypoints.websecure-external.http.tls.certresolver=dns-porkbun
+      - --entrypoints.websecure-internal.http.tls.certresolver=dns-porkbun
+      - --entrypoints.websecure-external.http.tls.domains[0].main=$DOMAINNAME_1
+      - --entrypoints.websecure-external.http.tls.domains[0].sans=*.$DOMAINNAME_1
+      - --entrypoints.websecure-internal.http.tls.domains[0].main=$DOMAINNAME_1
+      - --entrypoints.websecure-internal.http.tls.domains[0].sans=*.$DOMAINNAME_1
+      # - DOMAINS-PLACEHOLDER-DO-NOT-DELETE
+      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      - --providers.file.watch=true # Only works on top level files in the rules folder
+      #  - --certificatesResolvers.dns-porkbun.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      #  - --certificatesResolvers.dns-porkbun.acme.caServer=https://api.porkbun.com/api/json/v3/ssl/retrieve/DOMAIN
+      - --certificatesresolvers.dns-porkbun.acme.email=$EMAIL_ADDRESS
+      - --certificatesResolvers.dns-porkbun.acme.storage=/acme.json
+      - --certificatesResolvers.dns-porkbun.acme.dnsChallenge.provider=porkbun
+      #- --certificatesResolvers.dns-porkbun.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-porkbun.acme.dnsChallenge.propagation.delaybeforechecks=120 # To delay DNS check and reduce LE hitrate
+      #- --certificatesResolvers.dns-porkbun.acme.dnsChallenge.propagation.disablechecks=true # Not recommended
+      # - METRICS-PLACEHOLDER-DO-NOT-DELETE
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+      - "444:444"
+      - "$TRAEFIK_PORT:8080"
+    volumes:
+      - $APPDATADIR/traefik3/traefik-dynamic.yml
+      - $APPDATADIR/traefik3/rules/$HOSTNAME:/rules 
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # Use Docker Socket Proxy instead for improved security
+      - $APPDATADIR/traefik3/acme/acme.json:/acme.json 
+      - $DOCKERDIR/logs/$HOSTNAME/traefik:/logs
+    environment:
+      - TZ=$TZ
+      - PORKBUN_SECRET_API_KEY_FILE=/run/secrets/pb_secret_api_key
+      - PORKBUN_API_KEY_FILE=/run/secrets/pb_api_key
+      - HTPASSWD_FILE=/run/secrets/basic_auth_credentials # HTTP Basic Auth Credentials
+      - DOMAINNAME_1 # Passing the domain name to traefik container to be able to use the variable in rules. 
+      - SERVER_LAN_IP # Passing the server LAN IP to traefik container to be able to use the variable in rules.
+      # - TRAEFIK_AUTH_BYPASS_KEY
+    secrets:
+      - pb_secret_api_key
+      - pb_api_key
+      - basic_auth_credentials
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.traefik-rtr.entrypoints=websecure-internal,websecure-external"
+      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME_1`)"
+      # Services - API
+      - "traefik.http.routers.traefik-rtr.service=api@internal"
+      # Middlewares
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-no-auth@file"
+
+      # Homepage
+      - "homepage.group=Core"
+      - "homepage.name=Traefik"
+      - "homepage.href=https://traefik.$DOMAINNAME_1/"
+      - "homepage.description=Traefik (pronounced traffic) is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy."

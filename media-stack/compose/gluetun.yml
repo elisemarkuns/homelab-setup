@@ -1,0 +1,75 @@
+services:
+  # Gluetun - VPN Client for Docker Containers and More
+  # Gluetun only for use by torrent clients + on demand lan devices.
+  # Arr apps do not need VPN (not recommended), unless you have ISP/country restrictions.
+  gluetun:
+    container_name: gluetun
+    image: qmcgaw/gluetun
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    profiles: ["core", "downloads", "all"]
+    networks:
+      - t3_proxy
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    ports:
+      - "8081:8080"      # Exposing qBittorrent through Docker Host LAN IP
+      - "6881:6881"      # QB
+      - "6881:6881/udp"  # QB
+    # #   - "8082:8082" # Sabnzbd
+    # #   - 8888:8888/tcp # HTTP proxy
+    # #   - 8388:8388/tcp # Shadowsocks
+    # #   - 8388:8388/udp # Shadowsocks
+    volumes:
+      - $APPDATADIR/gluetun:/gluetun
+    environment:
+      # Wireguard ProtonVPN
+      VPN_SERVICE_PROVIDER: protonvpn
+      VPN_PORT_FORWARDING: on
+      VPN_PORT_FORWARDING_PROVIDER: protonvpn
+      VPN_PORT_FORWARDING_STATUS_FILE: /gluetun/forwarded_port
+      TZ: $TZ
+      UPDATER_PERIOD: 24h
+      FIREWALL_OUTBOUND_SUBNETS: 192.168.1.0/24,10.0.0.0/16,172.21.0.0/16
+      DOT_PROVIDERS: cloudflare,google
+      PUBLICIP_API: ip2location
+
+      VPN_TYPE: wireguard
+      WIREGUARD_PUBLIC_KEY: $WG_PUBLIC_KEY
+      WIREGUARD_PRIVATE_KEY: $WG_PRIVATE_KEY
+      WIREGUARD_ENDPOINT_IP: $WG_ENDPOINT_IP
+      WIREGUARD_ADDRESSES: $WG_ADDRESSES
+      DNS_ADDRESS: $DNS_ADDRESS
+      LOG_LEVEL: debug
+
+      VPN_PORT_FORWARDING_UP_COMMAND: /bin/sh -c 'wget -O- --retry-connrefused --user=elise --password=123123 --post-data "json={\"listen_port\":{{PORTS}}}" http://192.168.1.12:8081/api/v2/app/setPreferences 2>&1'
+      
+      #      # Wireguard mullvad
+      #      VPN_SERVICE_PROVIDER: mullvad
+      #      VPN_TYPE: wireguard
+      #      VPN_ENDPOINT_IP: 146.70.198.66
+      #      VPN_ENDPOINT_PORT: 51820
+      #      WIREGUARD_PRIVATE_KEY: $MULLVAD_WG_PRIVATE_KEY
+      #      WIREGUARD_ADDRESSES: 10.65.143.63/32
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.gluetun-qbittorrent-rtr.entrypoints=websecure-internal" # qBittorrent
+      - "traefik.http.routers.gluetun-qbittorrent-rtr.rule=Host(`qbit.$DOMAINNAME_1`)" # qBittorrent
+      # Middlewares
+      - "traefik.http.routers.gluetun-qbittorrent-rtr.middlewares=chain-no-auth@file" # qBittorrent
+      # HTTP Services
+      - "traefik.http.routers.gluetun-qbittorrent-rtr.service=gluetun-svc" # qBittorrent
+      - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8080" # qBittorrent
+
+        #      # HTTP Routers
+        #      - "traefik.http.routers.gluetun-sabnzbd-rtr.entrypoints=websecure-internal" # sabnzbd
+        #      - "traefik.http.routers.gluetun-sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME_1`)" # sabnzbd   
+        #      # Middlewares
+        #      - "traefik.http.routers.gluetun-sabnzbd-rtr.middlewares=chain-no-auth@file" # sabnzbd
+        #      # HTTP Services
+        #      - "traefik.http.routers.gluetun-sabnzbd-rtr.service=gluetun-svc" # sabnzbd
+        #      - "traefik.http.services.gluetun-svc.loadbalancer.server.port=8082" # sabnzbd
