@@ -31,5 +31,5 @@ services:
       # Homepage
       - "homepage.group=Media-Management"
       - "homepage.name=filebrowser"
-      - "homepage.href=http://files.xeiyra.com/"
+      - "homepage.href=http://files.$DOMAINNAME_1.com/"
       - "homepage.description=Media server"
