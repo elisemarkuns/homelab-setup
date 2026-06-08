@@ -4,7 +4,7 @@ services:
     container_name: porkbun-ddns
     restart: always
     environment:
-      DOMAIN: "xeiyra.com" # Your Porkbun domain
+      DOMAIN: $DOMAINNAME_1 # Your Porkbun domain
       #SUBDOMAINS: "" # Subdomains comma spreaded
       SECRETAPIKEY_FILE: /run/secrets/pb_secret_api_key # Your Porkbun Secret-API-Key
       APIKEY_FILE: /run/secrets/pb_api_key # Your Porkbun API-Key
